@@ -66,3 +66,9 @@ html, body {
   content: "· マルチ";
   opacity: 0.8;
 }
+
+/* Persisting: marker is gone but SLAM is still holding the pose. */
+#hud[data-state="persisting"] #hud-dot {
+  background: #8fb8ff;
+  animation: none;
+}

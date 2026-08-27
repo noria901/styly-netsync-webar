@@ -26,64 +26,16 @@ window.XR8 ? onxrloaded() : window.addEventListener('xrloaded', onxrloaded)
 // -----------------------------------------------------------------------------
 // 3. Components
 // -----------------------------------------------------------------------------
+// image-target lives in its own file — it grew past the point where it belongs
+// next to the bootstrap code.
 const register = () => {
+  import('./image-target.js')
+
   // Binds an entity to one named image target.
   //
   // The engine emits xrimagefound / xrimageupdated / xrimagelost on the scene,
   // each carrying {name, position, rotation, scale} for whichever target moved.
   // detail.rotation is a quaternion, not Euler angles.
-  AFRAME.registerComponent('image-target', {
-    schema: {
-      name: {type: 'string'},
-      // Keep the content on screen after the marker leaves the frame. Only
-      // useful with world tracking on — the content then stays anchored in
-      // space rather than following the camera.
-      persist: {type: 'boolean', default: false},
-    },
-
-    init() {
-      const {object3D} = this.el
-      object3D.visible = false
-
-      this.onFound = ({detail}) => {
-        if (detail.name !== this.data.name) {
-          return
-        }
-        object3D.position.copy(detail.position)
-        object3D.quaternion.copy(detail.rotation)
-        object3D.scale.setScalar(detail.scale)
-        if (!object3D.visible) {
-          object3D.visible = true
-          this.el.emit('targetfound', {name: detail.name}, false)
-          setHud('tracking', `${detail.name} を認識中`)
-        }
-      }
-
-      this.onLost = ({detail}) => {
-        if (detail.name !== this.data.name) {
-          return
-        }
-        if (!this.data.persist) {
-          object3D.visible = false
-        }
-        this.el.emit('targetlost', {name: detail.name}, false)
-        setHud('searching', 'マーカーを探しています')
-      }
-
-      const scene = this.el.sceneEl
-      scene.addEventListener('xrimagefound', this.onFound)
-      scene.addEventListener('xrimageupdated', this.onFound)
-      scene.addEventListener('xrimagelost', this.onLost)
-    },
-
-    remove() {
-      const scene = this.el.sceneEl
-      scene.removeEventListener('xrimagefound', this.onFound)
-      scene.removeEventListener('xrimageupdated', this.onFound)
-      scene.removeEventListener('xrimagelost', this.onLost)
-    },
-  })
-
   // Constant-rate rotation, frame-rate independent.
   AFRAME.registerComponent('spin', {
     schema: {
@@ -116,15 +68,33 @@ window.AFRAME ? register() : window.addEventListener('aframeloaded', register)
 // -----------------------------------------------------------------------------
 // 4. HUD
 // -----------------------------------------------------------------------------
-// Multiplayer state is advertised by netsync-colocalized; reflect it so the
-// user can tell "alone by design" from "alone because the bridge is down".
+// The components report state; the HUD is wired up here so they don't have to
+// know it exists.
 document.addEventListener('DOMContentLoaded', () => {
   const scene = document.querySelector('a-scene')
-  scene?.addEventListener('netsyncmode', ({detail}) => {
+  if (!scene) {
+    return
+  }
+
+  scene.addEventListener('netsyncmode', ({detail}) => {
     const hud = document.getElementById('hud')
     if (hud) {
       hud.dataset.mode = detail.mode
     }
+  })
+
+  scene.addEventListener('targetfound', ({detail}) => {
+    setHud('tracking', `${detail.name} を認識中`)
+  })
+
+  scene.addEventListener('targetlost', ({detail}) => {
+    setHud(
+      detail.persisting ? 'persisting' : 'searching',
+      detail.persisting ? `${detail.name} を空間に固定中` : 'マーカーを探しています')
+  })
+
+  scene.addEventListener('persistexpired', () => {
+    setHud('searching', 'マーカーを探しています')
   })
 })
 
