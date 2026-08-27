@@ -74,25 +74,33 @@ html, body {
 }
 
 /* -----------------------------------------------------------------------------
- * Loading screen branding
+ * "powered by 8thWall" marks
  * ---------------------------------------------------------------------------
- * xrextras-loading injects its markup straight into <body> (no shadow DOM), so
- * plain CSS reaches it. The logo and the spinner live in the same container, so
- * target the logo specifically rather than hiding the container.
+ * There are two different elements, drawn by two different pieces of software,
+ * and they sit in the same place — fixed, bottom: 2%, centred — so you cannot
+ * tell them apart by looking. Hiding one leaves the other on screen.
  *
- * xrextras is MIT-licensed, which requires keeping the copyright notice with the
- * source — not displaying a logo in the UI. The engine binary under
- * public/external/xr/ has its own separate licence; read it before touching
- * anything the engine itself draws.
+ *   .poweredby-img      xrextras: loading screen, permission-error screens,
+ *                       android link-out and copy-link views, almost-there
+ *                       (unsupported browser). MIT licensed.
+ *
+ *   .poweredby-img-8w   the engine itself: permissions-helper.ts injects this
+ *                       into <head> and <body> directly during the camera
+ *                       permission / resume-immersive prompt. Covered by the
+ *                       engine binary's own licence, not MIT.
+ *
+ * Neither uses shadow DOM, so plain CSS reaches both.
  */
-#xrextras-load-image-container .poweredby-img {
+
+/* xrextras. MIT requires keeping the copyright notice with the source, not
+ * displaying a logo in the UI, so removing this is uncontroversial. */
+.poweredby-img {
   display: none;
 }
 
-/* Swap in your own mark. Drop a file at public/brand.svg and delete the
- * display:none above if you'd rather replace than remove.
-#xrextras-load-image-container .poweredby-img {
-  content: url("/brand.svg");
-  max-width: 40vw;
+/* The engine's own. Read public/external/xr/LICENSE before shipping this —
+ * it is a separate, non-MIT licence and I am not the right thing to ask about
+ * what it permits. Delete this block to put the mark back. */
+.poweredby-img-8w {
+  display: none;
 }
-*/

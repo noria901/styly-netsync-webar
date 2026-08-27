@@ -966,47 +966,36 @@ e2e テストが通っていたのは、`fakeclient.mjs` が自前のパーサ�
 
 ## 8th Wall ロゴを消す
 
-起動時に出るロゴは **`xrextras-loading`** が描いているもの
-（`packages/xrextras/src/loadingmodule/loading-module.html`）。
-エンジン本体ではないので、扱いは楽。
+**同じ見た目のものが2つある。** どちらも `position: fixed; bottom: 2%;` の
+中央下なので、見ただけでは区別がつかない。片方だけ消しても残る。
 
-```html
-<img class='foreground-image poweredby-img'
-     src="../almosttheremodule/poweredby-horiz-white.svg" />
-```
+| セレクタ | 描いているもの | 出る場面 | ライセンス |
+|---|---|---|---|
+| `.poweredby-img` | xrextras | ローディング画面、権限エラー画面、Android の link-out / copy-link、非対応ブラウザ画面 | MIT |
+| `.poweredby-img-8w` | **エンジン本体** (`permissions-helper.ts`) | カメラ権限プロンプト、immersive 復帰プロンプト | エンジンバイナリのライセンス |
 
-ローディング画面は shadow DOM を使わず `<body>` に直接追加されるので、
-CSS が普通に届く。`src/hud.css` に入れてある:
+どちらも shadow DOM を使わず DOM に直接挿さるので、CSS が普通に届く。
+`src/hud.css` で両方消してある:
 
 ```css
-#xrextras-load-image-container .poweredby-img {
-  display: none;
-}
+.poweredby-img    { display: none; }   /* xrextras (MIT) */
+.poweredby-img-8w { display: none; }   /* エンジン本体 */
 ```
 
-スピナーとロゴが同じコンテナにいるので、コンテナごと消すとスピナーも消える。
-ロゴだけを狙うこと。自前のマークに差し替えるなら `content: url(...)`。
-
-### ロゴが出る場所は3つある
-
-| 場所 | 出どころ | ライセンス |
-|---|---|---|
-| ローディング画面 | `xrextras` loading module | MIT |
-| 非対応ブラウザ画面 | `xrextras` almost-there module | MIT |
-| 権限再要求プロンプト | エンジン本体 `permissions-helper.ts` | 要確認 |
-
-上2つは xrextras なので自由。3つ目は `resolvePoweredLogo()` が
-`resources/powered-by.svg` を読んでエンジンが直接 DOM に挿す。
-`.poweredby-img-8w` クラスなので CSS では消せるが、これはエンジンの描画物。
+エンジン側は `permissions-helper.ts` が `<style>` を `document.head` に
+`prepend` して、`ResourceUrls.resolvePoweredLogo()`
+（= `resources/powered-by.svg`）を `<img>` で挿している。
+CSS で消せるが、これはエンジンが自分で描いているもの。
 
 ### ライセンスについて
 
 xrextras は MIT。MIT が要求するのは**ソース配布時に著作権表示を残すこと**であって、
-UI にロゴを表示し続けることではない。なので上2つを消すのは問題ない。
+UI にロゴを表示し続けることではない。`.poweredby-img` を消すのは問題ない。
 
-エンジンバイナリ（`public/external/xr/`）は別ライセンスで、
-`public/external/xr/LICENSE` に同梱されている。**エンジンが自分で描いているものに
-手を入れる前に、そこを読むこと。** ここは法律の話になるので、判断は自分でしてほしい。
+`.poweredby-img-8w` はエンジンバイナリのライセンス下で、
+`public/external/xr/LICENSE` に同梱されている。**消す前にそこを読むこと。**
+法律の判断はこちらではできないので、そこは自分でやってほしい。
+戻すなら `hud.css` の該当ブロックを消すだけ。
 
 なお `packages/engine/README.md` には、xr.js 自体を MIT のソースから自前ビルドして
 SLAM チャンク（`xr-slam.js`）だけバイナリを使う手順も載っている。
@@ -1015,5 +1004,5 @@ SLAM チャンク（`xr-slam.js`）だけバイナリを使う手順も載って
 ### ローディング画面ごと自前にする場合
 
 `xrextras-loading` を外せばロゴも一緒に消えるが、**カメラ権限まわりの UI も消える**。
-あれは iOS / Android それぞれの権限拒否時の復帰手順を出してくれるもので、
+iOS / Android それぞれの権限拒否時の復帰手順を出してくれるもので、
 自前で書くと地味に大変。ロゴを消したいだけなら CSS で足りる。
