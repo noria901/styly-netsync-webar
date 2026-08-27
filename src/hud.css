@@ -72,3 +72,27 @@ html, body {
   background: #8fb8ff;
   animation: none;
 }
+
+/* -----------------------------------------------------------------------------
+ * Loading screen branding
+ * ---------------------------------------------------------------------------
+ * xrextras-loading injects its markup straight into <body> (no shadow DOM), so
+ * plain CSS reaches it. The logo and the spinner live in the same container, so
+ * target the logo specifically rather than hiding the container.
+ *
+ * xrextras is MIT-licensed, which requires keeping the copyright notice with the
+ * source — not displaying a logo in the UI. The engine binary under
+ * public/external/xr/ has its own separate licence; read it before touching
+ * anything the engine itself draws.
+ */
+#xrextras-load-image-container .poweredby-img {
+  display: none;
+}
+
+/* Swap in your own mark. Drop a file at public/brand.svg and delete the
+ * display:none above if you'd rather replace than remove.
+#xrextras-load-image-container .poweredby-img {
+  content: url("/brand.svg");
+  max-width: 40vw;
+}
+*/

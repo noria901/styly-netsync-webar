@@ -961,3 +961,59 @@ e2e テストが通っていたのは、`fakeclient.mjs` が自前のパーサ�
 未処理の `error` で**プロセスごと落ちる**。Sentry のようなエラー収集を入れていると
 ブラウザでも例外として上がる。リトライは `close` 側にあるので、
 `error` は握って黙らせるだけでいい。
+
+---
+
+## 8th Wall ロゴを消す
+
+起動時に出るロゴは **`xrextras-loading`** が描いているもの
+（`packages/xrextras/src/loadingmodule/loading-module.html`）。
+エンジン本体ではないので、扱いは楽。
+
+```html
+<img class='foreground-image poweredby-img'
+     src="../almosttheremodule/poweredby-horiz-white.svg" />
+```
+
+ローディング画面は shadow DOM を使わず `<body>` に直接追加されるので、
+CSS が普通に届く。`src/hud.css` に入れてある:
+
+```css
+#xrextras-load-image-container .poweredby-img {
+  display: none;
+}
+```
+
+スピナーとロゴが同じコンテナにいるので、コンテナごと消すとスピナーも消える。
+ロゴだけを狙うこと。自前のマークに差し替えるなら `content: url(...)`。
+
+### ロゴが出る場所は3つある
+
+| 場所 | 出どころ | ライセンス |
+|---|---|---|
+| ローディング画面 | `xrextras` loading module | MIT |
+| 非対応ブラウザ画面 | `xrextras` almost-there module | MIT |
+| 権限再要求プロンプト | エンジン本体 `permissions-helper.ts` | 要確認 |
+
+上2つは xrextras なので自由。3つ目は `resolvePoweredLogo()` が
+`resources/powered-by.svg` を読んでエンジンが直接 DOM に挿す。
+`.poweredby-img-8w` クラスなので CSS では消せるが、これはエンジンの描画物。
+
+### ライセンスについて
+
+xrextras は MIT。MIT が要求するのは**ソース配布時に著作権表示を残すこと**であって、
+UI にロゴを表示し続けることではない。なので上2つを消すのは問題ない。
+
+エンジンバイナリ（`public/external/xr/`）は別ライセンスで、
+`public/external/xr/LICENSE` に同梱されている。**エンジンが自分で描いているものに
+手を入れる前に、そこを読むこと。** ここは法律の話になるので、判断は自分でしてほしい。
+
+なお `packages/engine/README.md` には、xr.js 自体を MIT のソースから自前ビルドして
+SLAM チャンク（`xr-slam.js`）だけバイナリを使う手順も載っている。
+「work in progress」と注意書き付きだが、本体側を自由にしたい場合の道はある。
+
+### ローディング画面ごと自前にする場合
+
+`xrextras-loading` を外せばロゴも一緒に消えるが、**カメラ権限まわりの UI も消える**。
+あれは iOS / Android それぞれの権限拒否時の復帰手順を出してくれるもので、
+自前で書くと地味に大変。ロゴを消したいだけなら CSS で足りる。
