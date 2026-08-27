@@ -50,7 +50,7 @@ AFRAME.registerComponent('netsync-colocalized', {
   init() {
     this.config = readMultiplayerConfig()
     this.mode = this.config ? 'connecting' : 'single'
-    this.el.emit('netsyncmode', {mode: this.mode}, false)
+    this.el.emit('netsyncmode', {mode: this.mode})
 
     if (!this.config) {
       // Nothing to co-localize against and nobody to tell. The image-target
@@ -74,10 +74,10 @@ AFRAME.registerComponent('netsync-colocalized', {
       if (this.colo.sample(detail)) {
         // Latched. From here on SLAM carries the origin and the marker can
         // leave frame — otherwise everyone stands around staring at paper.
-        this.el.emit('colocalized', {scale: this.colo.scale}, false)
+        this.el.emit('colocalized', {scale: this.colo.scale})
         this.net.connect(mode => {
           this.mode = mode === 'offline' ? 'single' : mode
-          this.el.emit('netsyncmode', {mode: this.mode}, false)
+          this.el.emit('netsyncmode', {mode: this.mode})
           if (mode === 'offline') {
             this._clearAvatars()
           }

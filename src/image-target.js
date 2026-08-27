@@ -16,6 +16,11 @@
 // This component owns tracking state only. It reports what happened via
 // targetfound / targetlost / persistexpired and leaves presentation to whoever
 // is listening, so it has no dependency on the HUD.
+//
+// Those emits must bubble. A-Frame's emit(name, detail, bubbles) defaults to
+// true; passing false delivers only to this entity, and a listener on <a-scene>
+// never fires. That failure is silent — the component works, the HUD just never
+// changes — so bridge/test/image-target.test.mjs asserts the scene sees them.
 
 // How many recent samples to keep for picking a freeze pose.
 const HISTORY = 20
@@ -96,7 +101,7 @@ AFRAME.registerComponent('image-target', {
 
       if (wasHidden) {
         object3D.visible = true
-        this.el.emit('targetfound', {name: detail.name}, false)
+        this.el.emit('targetfound', {name: detail.name})
       }
     }
 
@@ -123,7 +128,7 @@ AFRAME.registerComponent('image-target', {
         object3D.visible = false
       }
 
-      this.el.emit('targetlost', {name: detail.name, persisting: !!this.frozen}, false)
+      this.el.emit('targetlost', {name: detail.name, persisting: !!this.frozen})
     }
 
     const scene = this.el.sceneEl
@@ -153,7 +158,7 @@ AFRAME.registerComponent('image-target', {
       if (performance.now() - this.lostAt > this.data.persistTimeout * 1000) {
         this.frozen = null
         object3D.visible = false
-        this.el.emit('persistexpired', {name: this.data.name}, false)
+        this.el.emit('persistexpired', {name: this.data.name})
       }
     }
   },

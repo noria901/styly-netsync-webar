@@ -300,6 +300,33 @@ score = facing - min(1, jitter * 4)
 - HUD 用のイベントを出す: `targetfound` / `targetlost`（`detail.persisting` 付き） /
   `persistexpired`。コンポーネント側は HUD を知らない
 
+  **これらは bubble させること。** A-Frame の `emit(name, detail, bubbles)` は
+  デフォルト `true` だが、`false` を渡すとそのエンティティ止まりになり、
+  `<a-scene>` 側のリスナーが一切発火しない。しかもコンポーネント自体は
+  正常に動くので、**HUD だけが更新されない**という気づきにくい壊れ方をする。
+
+## テスト
+
+```bash
+npm test
+```
+
+ブラウザなしでコンポーネントを検証する。`bridge/test/aframe-stub.mjs` が
+A-Frame と THREE の最小スタブで、実物の `emit(name, detail, bubbles)` の
+bubbling 挙動を再現している（そこが壊れやすいので）。
+
+`bridge/test/image-target.test.mjs` が検証している内容:
+
+- `targetfound` / `targetlost` / `persistexpired` が**シーンのリスナーに届く**
+- `persist: false` ならロスト時に非表示、`true` なら表示のまま
+- ロスト時に**正対フレームで固まる**（斜めの最終フレームではなく）
+- 別名のマーカーのイベントを無視する
+- 再認識でスナップせず補間される
+- `persistTimeout` で消える
+- `<a-scene>` 直下でないときに警告する
+
+CI でも `npm run build` の前に走る。
+
 ---
 
 ## 6. ビルドと配信
