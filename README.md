@@ -1,9 +1,21 @@
 # 8th Wall OSS × A-Frame — Image Target サンプル
 
+[![Deploy](https://github.com/noria901/styly-netsync-webar/actions/workflows/deploy.yml/badge.svg)](https://github.com/noria901/styly-netsync-webar/actions/workflows/deploy.yml)
+
+**https://noria901.github.io/styly-netsync-webar/**
+
 自前ホスティング前提の、画像マーカー WebAR 最小構成。マーカーを認識すると
 カード + 回転オブジェクト + 軸ギズモが重なる。
+STYLY NetSync と繋ぐとマルチプレイヤーになるが、そちらはオプトイン
+（`?bridge=...`）なので、上記 URL をそのまま開けばシングルプレイヤーで動く。
 
-依存はエンジンバイナリと 8-Frame だけで、残りは Vite と CDN。
+エンジンバイナリはこのリポジトリに含めていない。8th Wall の限定利用ライセンス下に
+あるため、ローカルでは README の手順で取得し、CI はビルド時に公式リポジトリから
+取得する（`.github/workflows/deploy.yml`）。
+
+> **注意: まだマーカーが1つも入っていない。**
+> `image-targets/` が空なので、デプロイ済みのページは何も認識しない。
+> `npm run target` でマーカーを生成してコミットすると、CI が自動で再デプロイする。
 
 ---
 
