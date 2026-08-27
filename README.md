@@ -13,9 +13,9 @@ STYLY NetSync と繋ぐとマルチプレイヤーになるが、そちらはオ
 あるため、ローカルでは README の手順で取得し、CI はビルド時に公式リポジトリから
 取得する（`.github/workflows/deploy.yml`）。
 
-> **注意: まだマーカーが1つも入っていない。**
-> `image-targets/` が空なので、デプロイ済みのページは何も認識しない。
-> `npm run target` でマーカーを生成してコミットすると、CI が自動で再デプロイする。
+デモ用のマーカーが1枚入っている（`image-targets/sample-target_original.png`）。
+印刷するか画面に表示してカメラを向ければ動く。合成画像なので、
+自分のマーカーに差し替えるのが前提。
 
 ---
 
@@ -79,31 +79,118 @@ LFS を引き忘れると、120 バイトのポインタテキストが `xr.js` 
 npm run target      # = npx @8thwall/image-target-cli@latest
 ```
 
-対話式。聞かれるのは4つだけ:
+対話式。聞かれるのは5つ:
 
 ```
-Enter the path to the image file:  ./targets/my-marker.jpg
-Select the image type:             1) flat  2) cylinder  3) cone
-Use default crop?                  Y
+Enter the path to the image file:  ./targets/my-marker.png
+Select the image type:             1) flat (default)  2) cylinder  3) cone
+Use default crop? [Y/n]:           Y
 Enter the output folder:           ./image-targets
 Enter a name for the image target: sample-target
 ```
 
-出力された `image-targets/sample-target.json` は `src/app.js` の glob が自動で拾う。
-ファイルを増やせば増やしただけ読み込まれるので、コード側の編集は不要。
+出力された JSON は `src/app.js` の glob が自動で拾う。ファイルを増やせば増やしただけ
+読み込まれるので、コード側の編集は不要。
 
 `index.html` の `image-target="name: sample-target"` の name は、CLI で入力した
-**image target name** と一致させる。ファイル名ではなく JSON 内の名前が正。
+**image target name** と一致させる。ファイル名ではなく JSON 内の `name` が正。
+
+## マーカーの仕様
+
+CLI のソース（`apps/image-target-cli/src/`）と、実際に生成した出力の実測。
+
+### 入力の制約
+
+`src/constants.json` と `crop.js` の `validateCrop` に書かれている条件:
+
+| 項目 | 値 | 根拠 |
+|---|---|---|
+| クロップ後の最小幅 | **480 px** | `minimumWidth` |
+| クロップ後の最小高さ | **640 px** | `minimumHeight` |
+| デフォルトクロップ | **3:4（縦長）中央** | `getDefaultCrop` |
+| 対応フォーマット | sharp が読めるもの（png / jpeg / webp / tiff 等） | `sharp(...).metadata()` |
+| EXIF 回転 | 自動で正規化 | `rawImage.autoOrient()` |
+
+制約は**クロップ後**にかかる。元画像がいくら大きくても、切り出した領域が
+480×640 を下回ると `Invalid crop geometry` で落ちる。
+
+デフォルトクロップは 3:4 に合わせて中央を切る。横長画像を渡すと左右が、
+縦長すぎる画像を渡すと上下が捨てられるので、**構図の端に特徴を置かない**。
+
+### 出力
+
+1200×1600 の PNG を食わせた実測:
+
+| ファイル | 実測サイズ | 用途 |
+|---|---|---|
+| `<name>.json` | 582 B | メタデータ |
+| `<name>_luminance.png` | **480×640 グレースケール** | **実行時に使われるのはこれだけ** |
+| `<name>_thumbnail.png` | 263×350 | UI 用 |
+| `<name>_cropped.png` | クロップ後の原寸 | 再編集用 |
+| `<name>_original.png` | 入力の原寸 | 再編集用 |
+
+**エンジンが実際に追跡するのは 480×640 のグレースケール1枚**。
+つまり入力を 4000px で用意しても情報は 480×640 に落とされる。
+解像度を上げるより、この解像度で潰れない特徴を持たせる方が効く。
+
+`luminanceHeight: 640` で高さ基準にリサイズしているので、
+3:4 でないクロップだと幅は 480 にならない（例: 1:1 なら 640×640）。
+
+### JSON の中身
+
+```json
+{
+  "imagePath": "image-targets/sample-target_luminance.png",
+  "name": "sample-target",
+  "type": "PLANAR",
+  "properties": {
+    "left": 0, "top": 0, "width": 1200, "height": 1600,
+    "isRotated": false, "originalWidth": 1200, "originalHeight": 1600
+  },
+  "resources": { ... }
+}
+```
+
+`properties` は**元画像に対するクロップ矩形**であって、物理サイズではない。
+実寸はどこにも入らない（だから `markerWidth` を自分で測って渡す必要がある）。
+
+### `imagePath` の罠
+
+`imagePath` は**ドキュメントからの相対 URL** で、エンジンは
+`img.setAttribute('src', imagePath)` で読む（`tracking-controller.ts`）。
+
+つまり **`dist/image-targets/<name>_luminance.png` が実在しないと動かない**。
+JSON をバンドルしただけでは足りない。しかもこれを忘れると:
+
+- ビルドは通る
+- コンソールにもエラーが出ない（画像の onerror は握られている）
+- **マーカーが一生認識されないだけ**
+
+「マーカーが悪いのか」と延々画像を作り直すことになる典型。
+`vite.config.js` にコピー用のプラグインを入れてあるので、
+このリポジトリでは自動で `dist/` に入る（実行時に要らない
+`_original` / `_cropped` / `_thumbnail` は除外、マーカー1枚あたり約 130KB の節約）。
 
 ### マーカー画像のコツ
 
-- 非対称・非反復。市松模様やロゴの繰り返しは特徴点が縮退して弱い
-- コントラストが高く、細部の密度が均一
-- グラデーションと大きなベタ面は特徴点が出ない
-- 印刷して使うなら光沢紙は避ける（ハイライトで飛ぶ）
+480×640 グレースケールに落ちることを前提に:
 
-円筒（ボトルラベル等）を選ぶと円周とターゲット幅も聞かれる。単位はスケールフリーなので
-mm でも inch でもトラッキング挙動は変わらない。
+- **非対称・非反復**。市松模様やロゴの繰り返しは特徴点が縮退する
+- **コントラストが高く、細部の密度が均一**。480×640 で潰れる細線は無意味
+- グラデーションと大きなベタ面には特徴点が出ない
+- **色に頼らない**。グレースケール化されるので、赤と緑の対比は消える
+- 印刷するなら光沢紙は避ける（ハイライトで飛ぶ）
+
+### 円筒・円錐
+
+`type` に `CYLINDER` / `CONICAL` を選ぶと `properties` が増える:
+
+- 円筒: `cylinderCircumferenceTop` / `targetCircumferenceTop` / `arcAngle` / `unit`
+- 円錐: 上記 + `topRadius` / `bottomRadius` / `coniness`
+
+単位は `'mm' | 'in'` を持つがスケールフリーで、トラッキング挙動には影響しない。
+円錐は内部で `unconify()` により平面に展開され、その展開後の画像に対して
+クロップがかかる（README の cone-diagram 参照）。
 
 ---
 
