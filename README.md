@@ -1006,3 +1006,62 @@ SLAM チャンク（`xr-slam.js`）だけバイナリを使う手順も載って
 `xrextras-loading` を外せばロゴも一緒に消えるが、**カメラ権限まわりの UI も消える**。
 iOS / Android それぞれの権限拒否時の復帰手順を出してくれるもので、
 自前で書くと地味に大変。ロゴを消したいだけなら CSS で足りる。
+
+---
+
+## オフラインで動かす（`file://` は無理）
+
+### なぜ `file://` ではダメか
+
+カメラは問題ない。`file://` は仕様上 **secure context に含まれる**ので、
+`getUserMedia` 自体は通る。
+
+詰まるのはモジュールの読み込み。エンジンは SLAM チャンクを
+**動的 import** で取りに行く（`chunk-loader.ts`）:
+
+```js
+const slamChunk = await import(/* webpackIgnore: true */ url)
+```
+
+`file://` ページのオリジンは `null` なので、これは CORS で拒否される。
+Worker（`new Worker(workerUrl)`）も同じ理由で作れない。
+どちらもバイナリの中なので、こちら側で直しようがない。
+
+自分のコードを IIFE 1ファイルにまとめても、この2つは残る。
+
+### 代わりに: PWA（実装済み）
+
+Service Worker で **https オリジンを保ったまま全部キャッシュから配る**。
+ネットのある場所で一度開けば、以降はオフラインで動く。
+
+```bash
+npm run build      # dist/sw.js が自動生成される
+npm run test:sw    # ビルドして Service Worker を検証
+```
+
+- プリキャッシュ一覧は **`dist/` の実物から生成**する。手書きリストのように
+  ビルド結果とズレることがない
+- キャッシュ名は全ファイルの内容ハッシュ。何か変われば新しい名前になり、
+  それが更新のトリガーになる
+- `addAll` ではなく個別 fetch。`addAll` は atomic なので1つ 404 が混じると
+  **何もキャッシュされず、インストール自体が失敗する**
+- cache-first。エンジンは約 8MB の不変ブロブなので、毎回検証する意味がない
+- ナビゲーションはシェルにフォールバック（ディープリンクでオフラインページを
+  出さないため）
+
+**xrextras は CDN 参照をやめてローカルに置いた。** クロスオリジンのスクリプトは
+opaque response になり、プリキャッシュしても意味がないため。CI がビルド時に
+jsDelivr から取得して `public/external/scripts/xrextras.js` に置く。
+
+`manifest.webmanifest` を入れてあるので、「ホーム画面に追加」で
+フルスクリーン起動になる。
+
+### そのほかの手
+
+**端末上で HTTP サーバを立てる。** Termux で `python3 -m http.server 8080` して
+`http://localhost:8080` を開く。**localhost は secure context** なので全部動く。
+ネットワークは不要。手軽だが、来場者に配る形ではない。
+
+**WebView でくるむ。** Capacitor などは内部的に `https://localhost` 相当の
+スキームから配信するので、secure context の条件を満たす。APK として配れるので、
+すでに APK のビルド・配布の仕組みがあるなら、これが一番運用しやすいかもしれない。

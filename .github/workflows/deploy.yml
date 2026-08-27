@@ -50,6 +50,12 @@ jobs:
           cp -r .engine/external/scripts          public/external/
           cp -r .engine/external/landing-page     public/external/
 
+          # Vendor xrextras so the app has no CDN dependency at runtime — a
+          # cross-origin script can't be meaningfully precached for offline use.
+          curl -fsSL https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js \
+            -o public/external/scripts/xrextras.js
+          test -s public/external/scripts/xrextras.js
+
           # Guard against a silent LFS miss.
           if head -c 40 public/external/xr/xr.js | grep -q 'git-lfs'; then
             echo "::error::xr.js is an LFS pointer, not the real file. Check lfs: true."
@@ -71,6 +77,9 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Test offline bundle
+        run: node bridge/test/sw.test.mjs
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

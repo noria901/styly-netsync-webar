@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview --host",
     "target": "npx @8thwall/image-target-cli@latest",
-    "test": "node bridge/test/image-target.test.mjs"
+    "test": "node bridge/test/image-target.test.mjs",
+    "test:sw": "npm run build && node bridge/test/sw.test.mjs"
   },
   "devDependencies": {
     "@vitejs/plugin-basic-ssl": "^1.2.0",

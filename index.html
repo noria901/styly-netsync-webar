@@ -11,9 +11,12 @@
        Plain A-Frame 1.5.0 also works but lacks the resize/renderer fixes. -->
   <script src="external/scripts/8frame-1.5.0.min.js"></script>
 
-  <!-- XR Extras: loading screen, runtime error UI, unsupported-browser hints. -->
-  <script src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js"
-          crossorigin="anonymous"></script>
+  <!-- XR Extras: loading screen, runtime error UI, unsupported-browser hints.
+       Vendored rather than pulled from a CDN — a cross-origin script returns an
+       opaque response, which is useless in a precache, and the whole point here
+       is that the app runs with no network at all. CI fetches it at build
+       time; see .github/workflows/deploy.yml. -->
+  <script src="external/scripts/xrextras.js"></script>
 
   <!-- The engine binary. NOT in this repo — unzip xr-standalone.zip into
        public/external/xr/. data-preload-chunks="slam" is required: image
@@ -24,6 +27,9 @@
   <!-- Registers netsync-colocalized. Inert unless the component is used. -->
   <script type="module" src="src/netsync-aframe.js"></script>
   <link rel="stylesheet" href="src/hud.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0d1b26">
+  <meta name="mobile-web-app-capable" content="yes">
 </head>
 
 <body>

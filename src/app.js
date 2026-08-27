@@ -106,3 +106,17 @@ function setHud(state, text) {
   hud.dataset.state = state
   document.getElementById('hud-text').textContent = text
 }
+
+// -----------------------------------------------------------------------------
+// 5. Offline
+// -----------------------------------------------------------------------------
+// Registered after load so the ~8 MB precache competes with nothing during
+// startup. Not registered on a dev server: a stale cache-first worker there is
+// pure confusion.
+if ('serviceWorker' in navigator && !import.meta.env.DEV) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', {scope: './'})
+      .then(reg => console.info('[offline] ready, scope', reg.scope))
+      .catch(err => console.warn('[offline] registration failed', err))
+  })
+}

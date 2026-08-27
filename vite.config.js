@@ -2,6 +2,7 @@ import {cpSync, createReadStream, existsSync} from 'fs'
 import {resolve} from 'path'
 import {defineConfig} from 'vite'
 import basicSsl from '@vitejs/plugin-basic-ssl'
+import {offlinePlugin} from './offline-plugin.js'
 
 // GitHub Pages serves project sites from /<repo>/, so assets must resolve
 // relative to the page rather than the domain root. './' works both there and
@@ -53,7 +54,9 @@ export default defineConfig({
   base,
   // getUserMedia requires a secure context. localhost is exempt, but testing on
   // a phone over the LAN is not — hence the self-signed cert.
-  plugins: [basicSsl(), copyImageTargets()],
+  // offlinePlugin must run after copyImageTargets — it precaches whatever is
+  // in dist, so the targets need to be there first.
+  plugins: [basicSsl(), copyImageTargets(), offlinePlugin()],
   server: {
     host: true,
     port: 5173,
