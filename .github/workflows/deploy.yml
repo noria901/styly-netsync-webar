@@ -1,0 +1,86 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The 8th Wall engine is not vendored here — it ships under its own
+      # limited-use licence, so this repo keeps a reference rather than a copy.
+      # It is pulled from 8th Wall's own example repo at build time.
+      #
+      # external/** is Git LFS there, so lfs: true is not optional: without it
+      # the checkout yields ~130-byte pointer files that get served as xr.js and
+      # fail with no useful error.
+      - name: Fetch 8th Wall engine
+        uses: actions/checkout@v4
+        with:
+          repository: 8thwall/aframe-image-targets-example
+          path: .engine
+          lfs: true
+
+      - name: Stage engine into public/
+        run: |
+          set -euo pipefail
+          mkdir -p public/external
+          # Only what image targets need. xr-face.js (7.5 MB) and the tflite
+          # models (6.4 MB) are for face effects and semantics; skipping them
+          # takes the payload from 36 MB to about 8 MB.
+          mkdir -p public/external/xr/resources
+          cp .engine/external/xr/xr.js            public/external/xr/
+          cp .engine/external/xr/xr-slam.js       public/external/xr/
+          cp .engine/external/xr/LICENSE          public/external/xr/
+          cp .engine/external/xr/resources/powered-by.svg public/external/xr/resources/
+          cp -r .engine/external/scripts          public/external/
+          cp -r .engine/external/landing-page     public/external/
+
+          # Guard against a silent LFS miss.
+          if head -c 40 public/external/xr/xr.js | grep -q 'git-lfs'; then
+            echo "::error::xr.js is an LFS pointer, not the real file. Check lfs: true."
+            exit 1
+          fi
+          du -sh public/external
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

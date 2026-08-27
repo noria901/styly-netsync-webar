@@ -1,0 +1,13 @@
+{
+  "name": "netsync-webar-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "zeromq": "^6.1.0"
+  }
+}

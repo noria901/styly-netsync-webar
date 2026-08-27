@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>Image Target Sample</title>
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+  <!-- 8-Frame: 8th Wall's patched A-Frame build. Copy it into
+       public/external/scripts/ from the official example repo — see README.
+       Plain A-Frame 1.5.0 also works but lacks the resize/renderer fixes. -->
+  <script src="external/scripts/8frame-1.5.0.min.js"></script>
+
+  <!-- XR Extras: loading screen, runtime error UI, unsupported-browser hints. -->
+  <script src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js"
+          crossorigin="anonymous"></script>
+
+  <!-- The engine binary. NOT in this repo — unzip xr-standalone.zip into
+       public/external/xr/. data-preload-chunks="slam" is required: image
+       targets ride on the SLAM chunk. -->
+  <script async src="external/xr/xr.js" data-preload-chunks="slam"></script>
+
+  <script type="module" src="src/app.js"></script>
+  <!-- Registers netsync-colocalized. Inert unless the component is used. -->
+  <script type="module" src="src/netsync-aframe.js"></script>
+  <link rel="stylesheet" href="src/hud.css">
+</head>
+
+<body>
+  <a-scene
+    netsync-colocalized="anchor: sample-target; markerWidth: 0.2"
+    xrweb
+    xrextras-loading
+    xrextras-runtime-error
+    renderer="colorManagement: true"
+    device-orientation-permission-ui="enabled: false">
+
+    <a-camera position="0 0 0"></a-camera>
+
+    <a-light type="ambient" intensity="0.9"></a-light>
+    <a-light type="directional" intensity="0.8" position="1 4 2"></a-light>
+
+    <!--
+      One entity per marker. `name` must match the image target name you typed
+      into the CLI, which is also the filename stem under image-targets/.
+
+      The entity's origin sits at the centre of the printed image with +Z out of
+      the paper, and the engine reports scale such that the target is 1 unit
+      wide. So "0.5" here means half the marker's printed width.
+    -->
+    <a-entity image-target="name: sample-target">
+
+      <!-- Card lying flat on the marker. Rotated -90 on X to lie in the
+           marker plane rather than standing up facing the camera. -->
+      <a-plane
+        width="1" height="0.6"
+        position="0 0 0.001"
+        material="color: #0d1b26; opacity: 0.8; transparent: true; side: double">
+      </a-plane>
+
+      <a-text
+        value="SAMPLE-TARGET"
+        align="center"
+        color="#7fe3c4"
+        width="1.4"
+        position="0 -0.22 0.002">
+      </a-text>
+
+      <!-- Floating object, so tracking drift is easy to see.
+           Swap for <a-entity gltf-model="#yourModel"> in a real project. -->
+      <a-torus-knot
+        position="0 0 0.3"
+        radius="0.16" radius-tubular="0.035"
+        material="color: #f2683c; metalness: 0.2; roughness: 0.5"
+        spin="axis: y; degreesPerSecond: 45">
+      </a-torus-knot>
+
+      <!-- Axis gizmo — X red, Y green, Z blue. Handy while checking that the
+           marker's orientation matches what you expect. -->
+      <a-entity axis-helper="size: 0.35"></a-entity>
+    </a-entity>
+  </a-scene>
+
+  <div id="hud" data-state="searching">
+    <span id="hud-dot"></span>
+    <span id="hud-text">マーカーを探しています</span>
+  </div>
+</body>
+</html>

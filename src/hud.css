@@ -1,0 +1,68 @@
+:root {
+  --hud-searching: #f2683c;
+  --hud-tracking: #7fe3c4;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+#hud {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: rgba(8, 16, 22, 0.72);
+  backdrop-filter: blur(8px);
+  color: #eef4f7;
+  font: 500 13px/1.2 -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+        "Hiragino Sans", "Noto Sans JP", sans-serif;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#hud-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--hud-searching);
+}
+
+#hud[data-state="searching"] #hud-dot {
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+#hud[data-state="tracking"] #hud-dot {
+  background: var(--hud-tracking);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #hud[data-state="searching"] #hud-dot { animation: none; }
+}
+
+/* Multiplayer badge. Absent in single-player, which is the common case. */
+#hud::after {
+  content: "";
+}
+#hud[data-mode="connecting"]::after {
+  content: "· 接続中";
+  opacity: 0.6;
+}
+#hud[data-mode="online"]::after {
+  content: "· マルチ";
+  opacity: 0.8;
+}
